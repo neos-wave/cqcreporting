@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Cassi — Group Intelligence (prototype)</title>
+<style>
+:root{
+  --paper:#F6F2EA; --surface:#FFFFFF; --surface-warm:#FCFAF4;
+  --ink:#242A29; --ink-soft:#5C6360; --line:#E7E0D2;
+  --teal:#157E79; --teal-soft:#E3F0EE; --teal-deep:#0E5F5B;
+  --purple:#6B5CE0; --purple-soft:#ECE9FB;
+  --green:#2F9E6B; --green-soft:#E2F2E9;
+  --amber:#C7891E; --amber-soft:#F7ECD8;
+  --red:#C24A3C; --red-soft:#F6E2DE; --grey:#9AA0A0;
+  --font-body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{margin:0; font-family:var(--font-body); color:var(--ink); background:var(--paper); -webkit-font-smoothing:antialiased;}
+button{font-family:var(--font-body);}
+
+/* ---- access gate ---- */
+#gate{height:100%; display:grid; place-items:center; padding:20px;}
+.gate-card{width:100%; max-width:380px; background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:30px 28px; text-align:center;}
+.gate-mark{width:52px; height:52px; margin:0 auto 14px; border-radius:14px; background:var(--teal); color:#fff; font-family:var(--font-display); font-size:28px; display:grid; place-items:center;}
+.gate-card h1{font-family:var(--font-display); font-size:21px; margin:0 0 4px;}
+.gate-card p{font-size:13px; color:var(--ink-soft); margin:0 0 20px; line-height:1.55;}
+.gate-card input{width:100%; font-size:16px; text-align:center; letter-spacing:.18em; padding:12px; border:1px solid var(--line); border-radius:12px; background:var(--surface-warm); color:var(--ink); font-family:var(--font-body);}
+.gate-card input:focus{outline:none; border-color:var(--teal);}
+.gate-card button{width:100%; margin-top:12px; font-size:15px; font-weight:600; color:#fff; background:var(--purple); border:none; border-radius:12px; padding:12px; cursor:pointer;}
+.gate-card button:hover{opacity:.92;}
+.gate-card button:focus-visible,.gate-card input:focus-visible{outline:2px solid var(--purple); outline-offset:2px;}
+.gate-err{color:var(--red); font-size:13px; min-height:18px; margin-top:10px;}
+
+/* ---- shell ---- */
+#app{display:none; height:100%; flex-direction:column;}
+.top{display:flex; align-items:center; gap:18px; padding:13px 20px; background:var(--surface-warm); border-bottom:1px solid var(--line);}
+.brand{display:flex; align-items:center; gap:11px;}
+.brand-mark{width:36px; height:36px; border-radius:10px; background:var(--teal); color:#fff; font-family:var(--font-display); font-size:20px; display:grid; place-items:center;}
+.brand-name{font-family:var(--font-display); font-size:19px; line-height:1;}
+.brand-sub{font-size:12px; color:var(--ink-soft); margin-top:3px;}
+.banner{margin-left:auto; font-size:12px; color:var(--teal-deep); background:var(--teal-soft); padding:7px 12px; border-radius:999px;}
+
+.main{flex:1; display:flex; min-height:0;}
+
+/* ---- mission control (left) ---- */
+.mc{width:440px; flex:none; background:var(--surface-warm); border-right:1px solid var(--line); overflow:auto; padding:18px 18px 24px; display:flex; flex-direction:column; gap:13px;}
+.mc h2{margin:0; font-family:var(--font-display); font-size:16px; font-weight:600;}
+.mc-section{display:flex; flex-direction:column; gap:9px;}
+.mc-hint{font-size:11.5px; color:var(--ink-soft); margin:0; line-height:1.5;}
+
+/* KPI strip */
+.kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:9px;}
+.kpi{background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:11px 12px;}
+.kpi .n{font-family:var(--font-display); font-size:24px; line-height:1;}
+.kpi .l{font-size:11px; color:var(--ink-soft); margin-top:5px; line-height:1.35;}
+.kpi.alert{border-color:#EBC9C2; background:var(--red-soft);}
+.kpi.alert .n{color:var(--red);}
+
+/* heatmap */
+.grid{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:13px 12px 11px; overflow-x:auto;}
+.grid table{border-collapse:collapse; width:100%;}
+.grid th{font-size:10px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.04em; padding:0; text-align:center; height:62px; vertical-align:bottom;}
+.grid th .rot{display:block; transform:rotate(-42deg); transform-origin:left bottom; white-space:nowrap; width:14px; margin:0 auto 6px;}
+.grid th.rowhead{text-align:left;}
+.grid td{padding:3px 0; text-align:center;}
+.grid td.rowhead{text-align:left; padding-right:8px;}
+.homebtn{background:none; border:none; padding:2px 0; cursor:pointer; text-align:left; font-size:12.5px; font-weight:600; color:var(--ink); border-radius:6px;}
+.homebtn:hover{color:var(--teal-deep);}
+.homebtn:focus-visible{outline:2px solid var(--purple); outline-offset:2px;}
+.homebtn .town{display:block; font-size:10.5px; font-weight:400; color:var(--ink-soft);}
+.cell{position:relative; width:34px; height:30px; margin:0 auto; border:none; border-radius:9px; cursor:pointer; display:grid; place-items:center; transition:transform .08s;}
+.cell:hover{transform:scale(1.12);}
+.cell:focus-visible{outline:2px solid var(--purple); outline-offset:2px;}
+.cell.green{background:var(--green-soft);} .cell.amber{background:var(--amber-soft);} .cell.red{background:var(--red-soft);}
+.cell .d{width:11px; height:11px; border-radius:50%;}
+.cell.green .d{background:var(--green);} .cell.amber .d{background:var(--amber);} .cell.red .d{background:var(--red);}
+.cell .mark{position:absolute; top:2px; right:3px; font-size:9px; line-height:1; color:var(--red); font-weight:700;}
+.legend{display:flex; flex-wrap:wrap; gap:12px; margin-top:9px; font-size:10.5px; color:var(--ink-soft); align-items:center;}
+.legend span{display:inline-flex; align-items:center; gap:5px;}
+.legend .d{width:9px; height:9px; border-radius:50%; display:inline-block;}
+
+/* exposure + watch lists */
+.list-card{background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:12px 13px;}
+.list-card.exposure{border-color:#EBC9C2;}
+.list-card h3{margin:0 0 8px; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;}
+.list-card.exposure h3{color:var(--red);}
+.list-card.watch h3{color:var(--amber);}
+.li-row{width:100%; background:none; border:none; text-align:left; padding:7px 6px; border-radius:9px; cursor:pointer; font-size:12.5px; line-height:1.45; color:var(--ink);}
+.li-row:hover{background:var(--paper);}
+.li-row:focus-visible{outline:2px solid var(--purple); outline-offset:1px;}
+.li-row b{font-weight:600;}
+.li-row .sub{display:block; font-size:11px; color:var(--ink-soft); margin-top:1px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.li-empty{font-size:12px; color:var(--ink-soft); padding:4px 6px;}
+
+/* ---- chat (right) ---- */
+.chat{flex:1; display:flex; flex-direction:column; min-width:0;}
+.stream{flex:1; overflow:auto; padding:24px 26px 8px; display:flex; flex-direction:column; gap:16px;}
+.row{display:flex; gap:11px; max-width:760px;}
+.row.user{align-self:flex-end; flex-direction:row-reverse;}
+.ava{width:30px; height:30px; flex:none; border-radius:9px; background:var(--teal); color:#fff; font-family:var(--font-display); font-size:15px; display:grid; place-items:center; margin-top:2px;}
+.bubble{border-radius:15px; padding:13px 16px; font-size:14.5px; line-height:1.6;}
+.bubble.assistant{background:var(--surface); border:1px solid var(--line); border-top-left-radius:5px;}
+.bubble.user{background:var(--teal-soft); border-top-right-radius:5px;}
+.bubble p{margin:0 0 9px;} .bubble p:last-child{margin-bottom:0;}
+.bubble ul{margin:4px 0 9px; padding-left:18px;} .bubble li{margin:3px 0;}
+
+.typing{display:flex; gap:5px; align-items:center;}
+.typing span{width:7px; height:7px; border-radius:50%; background:var(--grey); opacity:.4; animation:blink 1.3s infinite;}
+.typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
+@keyframes blink{0%,60%,100%{opacity:.25; transform:translateY(0);} 30%{opacity:.9; transform:translateY(-2px);}}
+
+.composer{border-top:1px solid var(--line); background:var(--surface-warm); padding:12px 18px 16px;}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:11px;}
+.chip{font-size:12.5px; color:var(--purple); background:var(--surface); border:1px solid var(--purple-soft); border-radius:999px; padding:7px 13px; cursor:pointer; transition:background .15s;}
+.chip:hover:not(:disabled){background:var(--purple-soft);}
+.chip:disabled{opacity:.5; cursor:default;}
+.chip:focus-visible{outline:2px solid var(--purple); outline-offset:2px;}
+.entry{display:flex; gap:10px; align-items:flex-end;}
+.entry textarea{flex:1; resize:none; font-family:var(--font-body); font-size:14.5px; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:12px 14px; line-height:1.5; max-height:140px;}
+.entry textarea:focus{outline:none; border-color:var(--teal);}
+.send{font-size:14px; font-weight:600; color:#fff; background:var(--purple); border:none; border-radius:12px; padding:12px 20px; cursor:pointer;}
+.send:hover:not(:disabled){opacity:.92;}
+.send:disabled{opacity:.45; cursor:default;}
+.send:focus-visible{outline:2px solid var(--ink); outline-offset:2px;}
+
+@media (max-width:880px){
+  .main{flex-direction:column;}
+  .mc{width:auto; max-height:46vh; border-right:none; border-bottom:1px solid var(--line);}
+  .banner{display:none;}
+  .row{max-width:100%;}
+}
+@media (prefers-reduced-motion: reduce){ .typing span{animation:none;} .cell:hover{transform:none;} }
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-mark">C</div>
+    <h1>Cassi — Group Intelligence</h1>
+    <p>Prototype for a central quality team. Simulated estate of five homes with full CQC self-assessments. Enter the access code you were given.</p>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="Access code" aria-label="Access code" />
+    <button id="enter">Enter</button>
+    <div class="gate-err" id="gate-err" role="alert"></div>
+  </div>
+</div>
+
+<div id="app">
+  <header class="top">
+    <div class="brand">
+      <span class="brand-mark">C</span>
+      <div>
+        <div class="brand-name">Cassi</div>
+        <div class="brand-sub" id="group-sub">Group Intelligence</div>
+      </div>
+    </div>
+    <div class="banner">Prototype · simulated data · Cassi surfaces signals; the central team decides</div>
+  </header>
+
+  <div class="main">
+    <aside class="mc" aria-label="Estate mission control">
+      <div class="mc-section">
+        <div class="kpis" id="kpis"></div>
+      </div>
+
+      <div class="mc-section">
+        <h2>Ratings of record × key question</h2>
+        <div class="grid" id="grid"></div>
+        <p class="mc-hint">Cells show each GM's rating of record. Tap anything to ask Cassi about it.</p>
+      </div>
+
+      <div class="mc-section">
+        <div class="list-card exposure">
+          <h3>Assessment gaps — rated above the evidence</h3>
+          <div id="exposure"></div>
+        </div>
+      </div>
+
+      <div class="mc-section">
+        <div class="list-card watch">
+          <h3>Watch list</h3>
+          <div id="watch"></div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="chat" aria-label="Group Intelligence chat">
+      <div class="stream" id="stream"></div>
+      <div class="composer">
+        <div class="chips" id="chips"></div>
+        <div class="entry">
+          <textarea id="input" rows="1" placeholder="Ask anything across the estate…" aria-label="Message Cassi"></textarea>
+          <button class="send" id="send" disabled>Send</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var FN = "/.netlify/functions/cassi-chat";
+  var KQS = ["Safe", "Effective", "Caring", "Responsive", "Well-led"];
+  var code = sessionStorage.getItem("gi_code") || "";
+  var history = [];
+  var busy = false;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var gate = $("gate"), app = $("app"), stream = $("stream");
+
+  function ragClass(label) {
+    return (label === "Outstanding" || label === "Good") ? "green" : (label === "Requires improvement") ? "amber" : "red";
+  }
+
+  /* ---- rich text rendering (text-node safe) ---- */
+  function boldInto(parent, s) {
+    s.split(/(\*\*[^*]+\*\*)/g).forEach(function (seg) {
+      if (/^\*\*[^*]+\*\*$/.test(seg)) {
+        var b = document.createElement("strong");
+        b.textContent = seg.slice(2, -2);
+        parent.appendChild(b);
+      } else if (seg) {
+        parent.appendChild(document.createTextNode(seg));
+      }
+    });
+  }
+  function renderRich(el, text) {
+    var list = null;
+    function flush() { if (list) { el.appendChild(list); list = null; } }
+    String(text).split("\n").forEach(function (raw) {
+      var line = raw.replace(/\s+$/, "");
+      if (/^\s*[-•]\s+/.test(line)) {
+        if (!list) list = document.createElement("ul");
+        var li = document.createElement("li");
+        boldInto(li, line.replace(/^\s*[-•]\s+/, ""));
+        list.appendChild(li);
+        return;
+      }
+      flush();
+      if (!line.trim()) return;
+      var p = document.createElement("p");
+      boldInto(p, line);
+      el.appendChild(p);
+    });
+    flush();
+  }
+
+  function addMsg(role, text) {
+    var row = document.createElement("div");
+    row.className = "row " + role;
+    if (role === "assistant") {
+      var ava = document.createElement("span");
+      ava.className = "ava"; ava.setAttribute("aria-hidden", "true"); ava.textContent = "C";
+      row.appendChild(ava);
+    }
+    var bubble = document.createElement("div");
+    bubble.className = "bubble " + role;
+    renderRich(bubble, text);
+    row.appendChild(bubble);
+    stream.appendChild(row);
+    stream.scrollTop = stream.scrollHeight;
+    return row;
+  }
+
+  function addTyping() {
+    var row = document.createElement("div");
+    row.className = "row assistant";
+    row.innerHTML = '<span class="ava" aria-hidden="true">C</span><div class="bubble assistant typing"><span></span><span></span><span></span></div>';
+    stream.appendChild(row);
+    stream.scrollTop = stream.scrollHeight;
+    return row;
+  }
+
+  /* ---- mission control ---- */
+  function renderKPIs(estate) {
+    var totalDiv = 0, flaggedHomes = 0, riKQ = 0;
+    estate.forEach(function (h) {
+      totalDiv += h.divergences.length;
+      if (h.divergences.length) flaggedHomes++;
+      KQS.forEach(function (k) { if (ragClass(h.kq[k].gm) !== "green") riKQ++; });
+    });
+    var defs = [
+      { n: estate.length, l: "homes", alert: false },
+      { n: totalDiv, l: "assessment gaps", alert: totalDiv > 0 },
+      { n: riKQ, l: "key questions below Good", alert: false },
+    ];
+    var wrap = $("kpis");
+    wrap.textContent = "";
+    defs.forEach(function (d) {
+      var div = document.createElement("div");
+      div.className = "kpi" + (d.alert ? " alert" : "");
+      var n = document.createElement("div"); n.className = "n"; n.textContent = d.n;
+      var l = document.createElement("div"); l.className = "l"; l.textContent = d.l;
+      div.appendChild(n); div.appendChild(l);
+      wrap.appendChild(div);
+    });
+  }
+
+  function renderGrid(estate) {
+    var wrap = $("grid");
+    wrap.textContent = "";
+    var table = document.createElement("table");
+    var thead = document.createElement("thead");
+    var hr = document.createElement("tr");
+    var corner = document.createElement("th");
+    corner.className = "rowhead"; corner.textContent = "Home";
+    hr.appendChild(corner);
+    KQS.forEach(function (k) {
+      var th = document.createElement("th");
+      var rot = document.createElement("span");
+      rot.className = "rot";
+      rot.textContent = k;
+      th.appendChild(rot);
+      th.title = k;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+
+    var tbody = document.createElement("tbody");
+    estate.forEach(function (h) {
+      var tr = document.createElement("tr");
+      var td0 = document.createElement("td");
+      td0.className = "rowhead";
+      var hb = document.createElement("button");
+      hb.className = "homebtn";
+      hb.textContent = h.name;
+      var town = document.createElement("span");
+      town.className = "town"; town.textContent = h.town;
+      hb.appendChild(town);
+      hb.addEventListener("click", function () { ask("Give me the picture on " + h.name + "."); });
+      td0.appendChild(hb);
+      tr.appendChild(td0);
+
+      KQS.forEach(function (k) {
+        var td = document.createElement("td");
+        var cell = document.createElement("button");
+        var kq = h.kq[k];
+        var divHere = h.divergences.filter(function (d) { return d.kq === k; });
+        cell.className = "cell " + ragClass(kq.gm);
+        cell.title = h.name + " · " + k + ": " + kq.gm + (divHere.length ? " — " + divHere.length + " assessment gap(s): rated above the evidence" : "");
+        cell.setAttribute("aria-label", cell.title);
+        var d = document.createElement("span"); d.className = "d";
+        cell.appendChild(d);
+        if (divHere.length) {
+          var m = document.createElement("span"); m.className = "mark"; m.textContent = "▲";
+          cell.appendChild(m);
+        }
+        cell.addEventListener("click", function () {
+          ask("Tell me about " + h.name + " on " + k + " — what does the evidence say, statement by statement where it matters?");
+        });
+        td.appendChild(cell);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+
+    var legend = document.createElement("div");
+    legend.className = "legend";
+    [["green", "Good / Outstanding"], ["amber", "Requires improvement"], ["red", "Inadequate"]].forEach(function (p) {
+      var s = document.createElement("span");
+      var d = document.createElement("i");
+      d.className = "d"; d.style.background = "var(--" + p[0] + ")";
+      s.appendChild(d);
+      s.appendChild(document.createTextNode(p[1]));
+      legend.appendChild(s);
+    });
+    var dm = document.createElement("span");
+    dm.innerHTML = '<b style="color:var(--red)">▲</b>&nbsp;assessment gap';
+    legend.appendChild(dm);
+    wrap.appendChild(legend);
+  }
+
+  function renderExposure(estate) {
+    var wrap = $("exposure");
+    wrap.textContent = "";
+    var any = false;
+    estate.forEach(function (h) {
+      h.divergences.forEach(function (d) {
+        any = true;
+        var b = document.createElement("button");
+        b.className = "li-row";
+        var top = document.createElement("span");
+        var name = document.createElement("b"); name.textContent = h.name;
+        top.appendChild(name);
+        top.appendChild(document.createTextNode(" · " + d.qs + " " + d.title));
+        var sub = document.createElement("span");
+        sub.className = "sub";
+        sub.textContent = "GM records " + d.gm + " · Cassi assesses " + d.cassi;
+        b.appendChild(top); b.appendChild(sub);
+        b.addEventListener("click", function () {
+          ask("Walk me through the assessment gap at " + h.name + " on " + d.qs + " (" + d.title + ") — and what should I ask the GM?");
+        });
+        wrap.appendChild(b);
+      });
+    });
+    if (!any) {
+      var e = document.createElement("div");
+      e.className = "li-empty"; e.textContent = "No ratings of record sit above Cassi's assessment.";
+      wrap.appendChild(e);
+    }
+  }
+
+  function renderWatch(estate) {
+    var wrap = $("watch");
+    wrap.textContent = "";
+    var any = false;
+    estate.forEach(function (h) {
+      if (!h.redFlags || !h.redFlags.length) return;
+      any = true;
+      var b = document.createElement("button");
+      b.className = "li-row";
+      var name = document.createElement("b"); name.textContent = h.name;
+      b.appendChild(name);
+      var sub = document.createElement("span");
+      sub.className = "sub"; sub.textContent = h.redFlags.join(" · ");
+      b.appendChild(sub);
+      b.addEventListener("click", function () { ask("What's on the watch list for " + h.name + ", and how worried should I be?"); });
+      wrap.appendChild(b);
+    });
+    if (!any) {
+      var e = document.createElement("div");
+      e.className = "li-empty"; e.textContent = "Nothing flagged.";
+      wrap.appendChild(e);
+    }
+  }
+
+  function renderChips(scenarios) {
+    var wrap = $("chips");
+    wrap.textContent = "";
+    scenarios.forEach(function (s) {
+      var b = document.createElement("button");
+      b.className = "chip"; b.textContent = s;
+      b.addEventListener("click", function () { ask(s); });
+      wrap.appendChild(b);
+    });
+  }
+
+  function setBusy(v) {
+    busy = v;
+    $("send").disabled = v || !$("input").value.trim();
+    Array.prototype.forEach.call(document.querySelectorAll(".chip"), function (c) { c.disabled = v; });
+  }
+
+  /* ---- chat ---- */
+  function ask(text) {
+    var q = (text != null ? text : $("input").value).trim();
+    if (!q || busy) return;
+    $("input").value = "";
+    $("input").style.height = "auto";
+    addMsg("user", q);
+    history.push({ role: "user", content: q });
+    setBusy(true);
+    var typing = addTyping();
+
+    fetch(FN, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-access-code": code },
+      body: JSON.stringify({ messages: history }),
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
+      .then(function (res) {
+        typing.remove();
+        if (res.status === 401) {
+          sessionStorage.removeItem("gi_code");
+          addMsg("assistant", "Your access has expired — refresh the page and enter the access code again.");
+          return;
+        }
+        var reply = res.ok && res.j && res.j.reply ? res.j.reply : (res.j && res.j.error) || "I can't reach the assessment engine just now — give it a moment and ask again.";
+        addMsg("assistant", reply);
+        if (res.ok && res.j && res.j.reply) history.push({ role: "assistant", content: res.j.reply });
+      })
+      .catch(function () {
+        typing.remove();
+        addMsg("assistant", "I can't reach the assessment engine just now — give it a moment and ask again.");
+      })
+      .then(function () { setBusy(false); });
+  }
+
+  /* ---- boot / gate ---- */
+  function boot() {
+    fetch(FN, { headers: { "x-access-code": code } })
+      .then(function (r) {
+        if (r.status === 401) throw new Error("bad-code");
+        if (!r.ok) throw new Error("server");
+        return r.json();
+      })
+      .then(function (data) {
+        sessionStorage.setItem("gi_code", code);
+        gate.style.display = "none";
+        app.style.display = "flex";
+        $("group-sub").textContent = "Group Intelligence · " + data.group;
+        renderKPIs(data.estate);
+        renderGrid(data.estate);
+        renderExposure(data.estate);
+        renderWatch(data.estate);
+        renderChips(data.scenarios);
+        addMsg(
+          "assistant",
+          "I'm Cassi. This is your **Group Intelligence** view for **" + data.group + "** — five homes, each with a full CQC self-assessment across all 34 quality statements. Ask me anything: a home, a key question, a single statement, a comparison.\n\nOne thing to hold onto: I **assess** the evidence, but each GM owns the **rating of record**. Where a GM has rated above what the evidence supports — an **assessment gap**, marked ▲ on your board — that is your exposure. I flag it; you decide.\n\nTap anything on the board, or try a starter below."
+        );
+        $("input").focus();
+      })
+      .catch(function (e) {
+        sessionStorage.removeItem("gi_code");
+        $("gate-err").textContent = e.message === "bad-code" ? "That code isn't right — try again." : "Can't reach the server — try again shortly.";
+      });
+  }
+
+  $("enter").addEventListener("click", function () {
+    code = $("pin").value.trim();
+    if (code) boot();
+  });
+  $("pin").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { code = $("pin").value.trim(); if (code) boot(); }
+  });
+  $("input").addEventListener("input", function () {
+    $("send").disabled = busy || !this.value.trim();
+    this.style.height = "auto";
+    this.style.height = Math.min(this.scrollHeight, 140) + "px";
+  });
+  $("input").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(); }
+  });
+  $("send").addEventListener("click", function () { ask(); });
+
+  if (code) boot();
+})();
+</script>
+</body>
+</html>
