@@ -13,7 +13,7 @@
 
 const { GROUP, ESTATE, SCENARIOS } = require("./estate.js");
 
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-6";
 const MAX_TURNS = 24;
 const MAX_CHARS = 2000;
 
