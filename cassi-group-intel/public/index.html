@@ -341,13 +341,18 @@ button{font-family:var(--font-body);}
         var td = document.createElement("td");
         var cell = document.createElement("button");
         var kq = h.kq[k];
-        var divHere = h.divergences.filter(function (d) { return d.kq === k; });
+        // ▲ marks key-question-LEVEL divergence only (rating of record above
+        // Cassi's assessed rating for the key question itself). Statement-level
+        // divergence beneath an aligned key question stays off the board by
+        // design — interrogation reveals it. That asymmetry is the product story.
+        var ORDER = { "Inadequate": 0, "Requires improvement": 1, "Good": 2, "Outstanding": 3 };
+        var kqDiverges = ORDER[kq.gm] > ORDER[kq.cassi];
         cell.className = "cell " + ragClass(kq.gm);
-        cell.title = h.name + " · " + k + ": " + kq.gm + (divHere.length ? " — " + divHere.length + " assessment gap(s): rated above the evidence" : "");
+        cell.title = h.name + " · " + k + ": " + kq.gm + (kqDiverges ? " — assessment gap: recorded above the evidence" : "");
         cell.setAttribute("aria-label", cell.title);
         var d = document.createElement("span"); d.className = "d";
         cell.appendChild(d);
-        if (divHere.length) {
+        if (kqDiverges) {
           var m = document.createElement("span"); m.className = "mark"; m.textContent = "▲";
           cell.appendChild(m);
         }
@@ -393,7 +398,10 @@ button{font-family:var(--font-body);}
         top.appendChild(document.createTextNode(" · " + d.qs + " " + d.title));
         var sub = document.createElement("span");
         sub.className = "sub";
-        sub.textContent = "GM records " + d.gm + " · Cassi assesses " + d.cassi;
+        var ORDER = { "Inadequate": 0, "Requires improvement": 1, "Good": 2, "Outstanding": 3 };
+        var kqCell = h.kq[d.kq];
+        var hidden = kqCell && !(ORDER[kqCell.gm] > ORDER[kqCell.cassi]);
+        sub.textContent = "GM records " + d.gm + " · Cassi assesses " + d.cassi + (hidden ? " · beneath an aligned " + d.kq + " rating — not visible on the board" : "");
         b.appendChild(top); b.appendChild(sub);
         b.addEventListener("click", function () {
           ask("Walk me through the assessment gap at " + h.name + " on " + d.qs + " (" + d.title + ") — and what should I ask the GM?");
